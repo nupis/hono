@@ -1,0 +1,24 @@
+hono:
+  edc:
+    pollingInterval: 60s
+    managementApi:
+      url: ${HONO_EDC_MANAGEMENT_API_URL}
+      apiKey: ${HONO_EDC_MANAGEMENT_API_KEY}
+    providerUrl: ${HONO_EDC_PROVIDER_URL}
+    dataPlane:
+      requestTimeout: 30s
+    negotiation:
+      pollInterval: 1s
+      timeout: 30s
+    transfer:
+      pollInterval: 1s
+      timeout: 30s
+    maxRetries: 3
+    retryBackoffBase: 1s
+
+quarkus:
+  rest-client:
+    edc-management-api:
+      verify-host: true
+      trust-store: ${HONO_EDC_TRUSTSTORE_PATH:}
+      trust-store-password: ${HONO_EDC_TRUSTSTORE_PASSWORD:}

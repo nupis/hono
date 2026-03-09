@@ -36,13 +36,3 @@ This file covers architectural patterns, data retention strategies, cross-reposi
 | Event streams | Delete-before-insert | Replace old with new, cascade deletes |
 | Audit logs | Append-only | Permanent retention for compliance |
 | Configuration | Update-in-place | Preserve with change history |
-
-**VMO-Specific Examples**:
-
-| Table | Strategy | Retained Data |
-|-------|----------|---------------|
-| Heartbeat | Upsert (INSERT ON CONFLICT UPDATE) | Latest heartbeat per machine |
-| VPN Report | Delete + Insert | Latest report per machine |
-| Connections/Sessions | Cascade delete | Data from latest report only |
-| Admin Action Log | Append-only | Permanent audit trail |
-| Aliases (vm, user, vpn) | Permanent | Configuration records |
