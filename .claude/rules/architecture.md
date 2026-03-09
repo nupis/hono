@@ -46,21 +46,3 @@ This file covers architectural patterns, data retention strategies, cross-reposi
 | Connections/Sessions | Cascade delete | Data from latest report only |
 | Admin Action Log | Append-only | Permanent audit trail |
 | Aliases (vm, user, vpn) | Permanent | Configuration records |
-
-### Principle 4: Cross-Repository Coordination
-
-**Why**: Changes affecting multiple repositories require careful coordination to avoid breaking integrations.
-
-**Rule**: Follow this order for cross-repo changes:
-1. Update shared contracts/schemas first
-2. Update server/backend
-3. Update clients
-4. Update frontend/UI
-
-## Checklist
-
-- [ ] Design documented before implementation
-- [ ] Architecture diagrams updated
-- [ ] Cross-repo changes coordinated in correct order
-- [ ] Data retention strategy appropriate for data type
-- [ ] Business logic isolated from infrastructure
