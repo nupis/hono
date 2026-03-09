@@ -24,16 +24,7 @@ This file covers architectural patterns, data retention strategies, cross-reposi
 
 **Rule**: When code and design diagrams conflict, the diagram is authoritative. Code must be updated to match the design.
 
-### Principle 3: Hexagonal Architecture (Ports & Adapters)
-
-**Why**: Separating business logic from infrastructure enables testing and flexibility.
-
-**Rule**:
-- Domain logic must not depend on infrastructure
-- External dependencies accessed through defined ports
-- Adapters implement ports for specific technologies
-
-### Principle 4: Data Retention Strategy
+### Principle 3: Data Retention Strategy
 
 **Why**: Unbounded data growth leads to performance degradation and storage costs.
 
@@ -56,7 +47,7 @@ This file covers architectural patterns, data retention strategies, cross-reposi
 | Admin Action Log | Append-only | Permanent audit trail |
 | Aliases (vm, user, vpn) | Permanent | Configuration records |
 
-### Principle 5: Cross-Repository Coordination
+### Principle 4: Cross-Repository Coordination
 
 **Why**: Changes affecting multiple repositories require careful coordination to avoid breaking integrations.
 
