@@ -130,12 +130,13 @@ public class EdcManagementClient {
      * Queries the EDC catalog for available assets.
      *
      * @param providerDspUrl The provider's DSP endpoint URL.
+     * @param providerBpn The provider's Business Partner Number.
      * @return A future containing the list of discovered catalog assets.
      */
-    public Future<List<CatalogAsset>> queryCatalog(final String providerDspUrl) {
-        LOG.debug("querying EDC catalog [providerDspUrl={}]", providerDspUrl);
+    public Future<List<CatalogAsset>> queryCatalog(final String providerDspUrl, final String providerBpn) {
+        LOG.debug("querying EDC catalog [providerDspUrl={}, providerBpn={}]", providerDspUrl, providerBpn);
 
-        final var request = CatalogRequest.create(providerDspUrl, 0, DEFAULT_CATALOG_LIMIT);
+        final var request = CatalogRequest.create(providerDspUrl, providerBpn, 0, DEFAULT_CATALOG_LIMIT);
         return postJson(CATALOG_PATH, request)
                 .compose(response -> checkStatus(response, "catalog query")
                         .compose(v -> deserialize(response.bodyAsBuffer(), CatalogResponse.class)))
@@ -150,18 +151,21 @@ public class EdcManagementClient {
      * Initiates a contract negotiation for the given asset and offer.
      *
      * @param providerDspUrl The provider's DSP endpoint URL.
+     * @param providerBpn The provider's Business Partner Number.
      * @param offerId The ODRL offer/policy ID from the catalog.
      * @param assetId The target asset identifier.
      * @return A future containing the EDC-assigned negotiation ID.
      */
     public Future<String> initiateNegotiation(
             final String providerDspUrl,
+            final String providerBpn,
             final String offerId,
             final String assetId) {
 
-        LOG.debug("initiating contract negotiation [assetId={}, offerId={}]", assetId, offerId);
+        LOG.debug("initiating contract negotiation [assetId={}, offerId={}, providerBpn={}]",
+                assetId, offerId, providerBpn);
 
-        final var request = ContractNegotiationRequest.create(providerDspUrl, offerId, assetId);
+        final var request = ContractNegotiationRequest.create(providerDspUrl, providerBpn, offerId, assetId);
         return postJson(NEGOTIATIONS_PATH, request)
                 .compose(response -> checkStatus(response, "initiate negotiation")
                         .compose(v -> deserialize(response.bodyAsBuffer(), IdResponse.class)))
@@ -193,16 +197,19 @@ public class EdcManagementClient {
      * Initiates a data transfer process using the HttpData-PULL pattern.
      *
      * @param providerDspUrl The provider's DSP endpoint URL.
+     * @param providerBpn The provider's Business Partner Number.
      * @param contractAgreementId The contract agreement ID from a finalized negotiation.
      * @return A future containing the EDC-assigned transfer process ID.
      */
     public Future<String> initiateTransfer(
             final String providerDspUrl,
+            final String providerBpn,
             final String contractAgreementId) {
 
-        LOG.debug("initiating transfer [contractAgreementId={}]", contractAgreementId);
+        LOG.debug("initiating transfer [contractAgreementId={}, providerBpn={}]",
+                contractAgreementId, providerBpn);
 
-        final var request = TransferRequest.create(providerDspUrl, contractAgreementId);
+        final var request = TransferRequest.create(providerDspUrl, providerBpn, contractAgreementId);
         return postJson(TRANSFERS_PATH, request)
                 .compose(response -> checkStatus(response, "initiate transfer")
                         .compose(v -> deserialize(response.bodyAsBuffer(), IdResponse.class)))

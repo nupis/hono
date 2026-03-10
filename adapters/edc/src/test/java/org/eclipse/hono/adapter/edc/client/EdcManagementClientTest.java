@@ -32,6 +32,7 @@ class EdcManagementClientTest {
 
     private static final String API_KEY = "test-api-key";
     private static final String PROVIDER_DSP_URL = "https://provider:8282/api/dsp";
+    private static final String PROVIDER_BPN = "BPNL00000003CRHK";
 
     private WireMockServer wireMock;
     private Vertx vertx;
@@ -91,7 +92,7 @@ class EdcManagementClientTest {
                         .withHeader("Content-Type", "application/json")
                         .withBody(catalogResponseBody)));
 
-        final var assets = client.queryCatalog(PROVIDER_DSP_URL)
+        final var assets = client.queryCatalog(PROVIDER_DSP_URL, PROVIDER_BPN)
                 .toCompletionStage().toCompletableFuture()
                 .get(5, TimeUnit.SECONDS);
 
@@ -119,7 +120,7 @@ class EdcManagementClientTest {
                         .withHeader("Content-Type", "application/json")
                         .withBody(idResponseBody)));
 
-        final var result = client.initiateNegotiation(PROVIDER_DSP_URL, "offer-abc-123", "sensor-001")
+        final var result = client.initiateNegotiation(PROVIDER_DSP_URL, PROVIDER_BPN, "offer-abc-123", "sensor-001")
                 .toCompletionStage().toCompletableFuture()
                 .get(5, TimeUnit.SECONDS);
 
@@ -131,6 +132,7 @@ class EdcManagementClientTest {
                           "@context": { "edc": "https://w3id.org/edc/v0.0.1/ns/" },
                           "@type": "ContractRequest",
                           "counterPartyAddress": "%s",
+                          "counterPartyId": "%s",
                           "protocol": "dataspace-protocol-http",
                           "policy": {
                             "@id": "offer-abc-123",
@@ -141,7 +143,7 @@ class EdcManagementClientTest {
                             "odrl:target": "sensor-001"
                           }
                         }
-                        """.formatted(PROVIDER_DSP_URL), true, false)));
+                        """.formatted(PROVIDER_DSP_URL, PROVIDER_BPN), true, false)));
     }
 
     @Test
@@ -209,7 +211,7 @@ class EdcManagementClientTest {
                         .withHeader("Content-Type", "application/json")
                         .withBody(idResponseBody)));
 
-        final var result = client.initiateTransfer(PROVIDER_DSP_URL, "agreement-id-456")
+        final var result = client.initiateTransfer(PROVIDER_DSP_URL, PROVIDER_BPN, "agreement-id-456")
                 .toCompletionStage().toCompletableFuture()
                 .get(5, TimeUnit.SECONDS);
 
@@ -220,7 +222,7 @@ class EdcManagementClientTest {
                         {
                           "@context": { "edc": "https://w3id.org/edc/v0.0.1/ns/" },
                           "@type": "TransferRequestDto",
-                          "connectorId": "provider",
+                          "connectorId": "%s",
                           "counterPartyAddress": "%s",
                           "contractAgreementId": "agreement-id-456",
                           "protocol": "dataspace-protocol-http",
@@ -230,7 +232,7 @@ class EdcManagementClientTest {
                             "type": "HttpProxy"
                           }
                         }
-                        """.formatted(PROVIDER_DSP_URL), true, false)));
+                        """.formatted(PROVIDER_BPN, PROVIDER_DSP_URL), true, false)));
     }
 
     @Test
@@ -288,7 +290,7 @@ class EdcManagementClientTest {
                         .withStatus(500)
                         .withBody("Internal Server Error")));
 
-        final var future = client.queryCatalog(PROVIDER_DSP_URL)
+        final var future = client.queryCatalog(PROVIDER_DSP_URL, PROVIDER_BPN)
                 .toCompletionStage().toCompletableFuture();
 
         Assertions.assertTrue(future.isCompletedExceptionally() || assertThrowsOnGet(future));
@@ -301,7 +303,7 @@ class EdcManagementClientTest {
                         .withStatus(400)
                         .withBody("Bad Request")));
 
-        final var future = client.initiateNegotiation(PROVIDER_DSP_URL, "bad-offer", "bad-asset")
+        final var future = client.initiateNegotiation(PROVIDER_DSP_URL, PROVIDER_BPN, "bad-offer", "bad-asset")
                 .toCompletionStage().toCompletableFuture();
 
         Assertions.assertTrue(future.isCompletedExceptionally() || assertThrowsOnGet(future));

@@ -1,6 +1,7 @@
 hono:
   edc:
     pollingInterval: 60s
+    providerBpn: ${HONO_EDC_PROVIDER_BPN}
     # Optional: restrict polling to a single asset by ID (omit to process all assets)
     # assetIdFilter: ${HONO_EDC_ASSET_ID_FILTER:}
     managementApi:

@@ -22,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @param context The JSON-LD context mapping.
  * @param type The JSON-LD type, always "CatalogRequest".
  * @param counterPartyAddress The provider DSP endpoint URL.
+ * @param counterPartyId The provider's Business Partner Number.
  * @param protocol The dataspace protocol identifier.
  * @param querySpec The query specification with offset and limit.
  */
@@ -29,6 +30,7 @@ public record CatalogRequest(
         @JsonProperty("@context") Map<String, String> context,
         @JsonProperty("@type") String type,
         String counterPartyAddress,
+        String counterPartyId,
         String protocol,
         QuerySpec querySpec) {
 
@@ -48,15 +50,21 @@ public record CatalogRequest(
      * Creates a new CatalogRequest for the given provider.
      *
      * @param counterPartyAddress The provider DSP endpoint URL.
+     * @param providerBpn The provider's Business Partner Number.
      * @param offset The result offset.
      * @param limit The maximum number of results.
      * @return A new CatalogRequest instance.
      */
-    public static CatalogRequest create(final String counterPartyAddress, final int offset, final int limit) {
+    public static CatalogRequest create(
+            final String counterPartyAddress,
+            final String providerBpn,
+            final int offset,
+            final int limit) {
         return new CatalogRequest(
                 EDC_CONTEXT,
                 "CatalogRequest",
                 counterPartyAddress,
+                providerBpn,
                 "dataspace-protocol-http",
                 new QuerySpec(offset, limit));
     }

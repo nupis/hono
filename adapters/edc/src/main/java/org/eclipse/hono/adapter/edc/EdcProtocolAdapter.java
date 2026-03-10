@@ -127,6 +127,11 @@ public final class EdcProtocolAdapter extends AbstractProtocolAdapterBase<EdcAda
             startPromise.fail("EDC management API configuration missing");
             return;
         }
+        if (config.getProviderBpn() == null) {
+            log.error("EDC provider BPN must be configured");
+            startPromise.fail("EDC provider BPN must be configured");
+            return;
+        }
 
         final var managementClient = new EdcManagementClient(
                 vertx,
@@ -152,6 +157,7 @@ public final class EdcProtocolAdapter extends AbstractProtocolAdapterBase<EdcAda
                 config,
                 metrics != null ? metrics : EdcAdapterMetrics.NOOP);
 
+        log.info("EDC protocol adapter starting [providerBpn={}]", config.getProviderBpn());
         if (config.getAssetIdFilter() != null) {
             log.info("Asset filter configured: assetId={}", config.getAssetIdFilter());
         } else {

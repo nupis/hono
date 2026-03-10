@@ -44,6 +44,7 @@ public class EdcAdapterProperties extends ProtocolAdapterProperties {
     private int maxRetries = DEFAULT_MAX_RETRIES;
     private Duration retryBackoffBase = DEFAULT_RETRY_BACKOFF_BASE;
     private String assetIdFilter;
+    private String providerBpn;
 
     /**
      * Creates properties using default values.
@@ -71,6 +72,7 @@ public class EdcAdapterProperties extends ProtocolAdapterProperties {
         this.maxRetries = options.maxRetries();
         this.retryBackoffBase = options.retryBackoffBase();
         options.assetIdFilter().ifPresent(this::setAssetIdFilter);
+        options.providerBpn().ifPresent(this::setProviderBpn);
     }
 
     /**
@@ -324,5 +326,30 @@ public class EdcAdapterProperties extends ProtocolAdapterProperties {
         } else {
             this.assetIdFilter = null;
         }
+    }
+
+    /**
+     * Gets the Business Partner Number (BPN) of the EDC Provider.
+     *
+     * @return The provider BPN.
+     */
+    public String getProviderBpn() {
+        return providerBpn;
+    }
+
+    /**
+     * Sets the Business Partner Number (BPN) of the EDC Provider.
+     *
+     * @param providerBpn The provider BPN.
+     * @throws NullPointerException if providerBpn is {@code null}.
+     * @throws IllegalArgumentException if providerBpn is blank.
+     */
+    public void setProviderBpn(final String providerBpn) {
+        Objects.requireNonNull(providerBpn);
+        final String trimmed = providerBpn.trim();
+        if (trimmed.isEmpty()) {
+            throw new IllegalArgumentException("provider BPN must not be blank");
+        }
+        this.providerBpn = trimmed;
     }
 }

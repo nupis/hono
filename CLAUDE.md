@@ -24,6 +24,7 @@ tests/
 Java 21+ (LTS) with records, sealed classes, pattern matching: Follow standard conventions
 
 ## Recent Changes
+- 004-add-provider-bpn: Added Java 21+ (LTS) with records, sealed classes, pattern matching + Quarkus 3.x, Vert.x, Hono adapter-base (existing — no new dependencies)
 - 003-single-asset-filter: Added Java 21+ (LTS) with records, sealed classes, pattern matching + Quarkus 3.x, Vert.x, Hono adapter-base (existing — no new dependencies)
 
 - 001-edc-data-ingestion: Added Java 21+ (LTS) with records, sealed classes, pattern matching + Quarkus 3.x, Vert.x, Hono adapter-base, Quarkus REST Client (for EDC Management API), Jackson (JSON-LD processing)

@@ -14,6 +14,7 @@ package org.eclipse.hono.adapter.edc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
 
@@ -62,5 +63,37 @@ class EdcAdapterPropertiesTest {
         props.setAssetIdFilter("sensor-042");
         props.setAssetIdFilter(null);
         assertNull(props.getAssetIdFilter());
+    }
+
+    @Test
+    void testProviderBpnDefaultsToNull() {
+        final var props = new EdcAdapterProperties();
+        assertNull(props.getProviderBpn());
+    }
+
+    @Test
+    void testSetProviderBpnStoresValue() {
+        final var props = new EdcAdapterProperties();
+        props.setProviderBpn("BPNL00000003CRHK");
+        assertEquals("BPNL00000003CRHK", props.getProviderBpn());
+    }
+
+    @Test
+    void testSetProviderBpnTrimsWhitespace() {
+        final var props = new EdcAdapterProperties();
+        props.setProviderBpn("  BPNL00000003CRHK  ");
+        assertEquals("BPNL00000003CRHK", props.getProviderBpn());
+    }
+
+    @Test
+    void testSetProviderBpnBlankThrowsIllegalArgumentException() {
+        final var props = new EdcAdapterProperties();
+        assertThrows(IllegalArgumentException.class, () -> props.setProviderBpn("   "));
+    }
+
+    @Test
+    void testSetProviderBpnNullThrowsNullPointerException() {
+        final var props = new EdcAdapterProperties();
+        assertThrows(NullPointerException.class, () -> props.setProviderBpn(null));
     }
 }

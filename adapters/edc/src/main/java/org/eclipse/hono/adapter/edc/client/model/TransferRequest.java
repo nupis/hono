@@ -56,17 +56,19 @@ public record TransferRequest(
      * Creates a new TransferRequest for the given contract agreement.
      *
      * @param counterPartyAddress The provider DSP endpoint URL.
+     * @param providerBpn The provider's Business Partner Number.
      * @param contractAgreementId The contract agreement ID from a finalized negotiation.
      * @return A new TransferRequest instance.
      */
     public static TransferRequest create(
             final String counterPartyAddress,
+            final String providerBpn,
             final String contractAgreementId) {
 
         return new TransferRequest(
                 EDC_CONTEXT,
                 "TransferRequestDto",
-                "provider",
+                providerBpn,
                 counterPartyAddress,
                 contractAgreementId,
                 "dataspace-protocol-http",

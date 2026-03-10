@@ -23,6 +23,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @param context The JSON-LD context mapping.
  * @param type The JSON-LD type, always "ContractRequest".
  * @param counterPartyAddress The provider DSP endpoint URL.
+ * @param counterPartyId The provider's Business Partner Number.
  * @param protocol The dataspace protocol identifier.
  * @param policy The ODRL offer/policy to negotiate.
  */
@@ -30,6 +31,7 @@ public record ContractNegotiationRequest(
         @JsonProperty("@context") Map<String, String> context,
         @JsonProperty("@type") String type,
         String counterPartyAddress,
+        String counterPartyId,
         String protocol,
         OfferPolicy policy) {
 
@@ -59,12 +61,14 @@ public record ContractNegotiationRequest(
      * Creates a new ContractNegotiationRequest for the given asset and offer.
      *
      * @param counterPartyAddress The provider DSP endpoint URL.
+     * @param providerBpn The provider's Business Partner Number.
      * @param offerId The ODRL offer/policy identifier from the catalog.
      * @param assetId The target asset identifier.
      * @return A new ContractNegotiationRequest instance.
      */
     public static ContractNegotiationRequest create(
             final String counterPartyAddress,
+            final String providerBpn,
             final String offerId,
             final String assetId) {
 
@@ -80,6 +84,7 @@ public record ContractNegotiationRequest(
                 EDC_CONTEXT,
                 "ContractRequest",
                 counterPartyAddress,
+                providerBpn,
                 "dataspace-protocol-http",
                 policy);
     }

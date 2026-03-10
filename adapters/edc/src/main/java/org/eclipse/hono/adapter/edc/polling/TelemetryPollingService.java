@@ -131,7 +131,7 @@ public class TelemetryPollingService {
                 cycleCorrelationId, filterInfo);
         final Instant cycleStart = Instant.now();
 
-        return managementClient.queryCatalog(properties.getProviderDspUrl())
+        return managementClient.queryCatalog(properties.getProviderDspUrl(), properties.getProviderBpn())
                 .compose(assets -> {
                     final var filtered = filterAssets(assets, assetIdFilter, cycleCorrelationId);
                     LOG.info("discovered {} assets in catalog, processing {} after filtering [correlationId={}]",
@@ -236,7 +236,7 @@ public class TelemetryPollingService {
             final String correlationId) {
 
         return managementClient.initiateNegotiation(
-                        asset.providerDspUrl(), asset.offerId(), asset.assetId())
+                        asset.providerDspUrl(), properties.getProviderBpn(), asset.offerId(), asset.assetId())
                 .compose(negotiationId -> {
                     LOG.debug("negotiation initiated [negotiationId={}, correlationId={}]",
                             negotiationId, correlationId);
@@ -247,7 +247,8 @@ public class TelemetryPollingService {
                 .compose(agreementId -> {
                     LOG.debug("negotiation finalized [agreementId={}, correlationId={}]",
                             agreementId, correlationId);
-                    return managementClient.initiateTransfer(asset.providerDspUrl(), agreementId);
+                    return managementClient.initiateTransfer(
+                            asset.providerDspUrl(), properties.getProviderBpn(), agreementId);
                 })
                 .compose(transferId -> {
                     LOG.debug("transfer initiated [transferId={}, correlationId={}]",

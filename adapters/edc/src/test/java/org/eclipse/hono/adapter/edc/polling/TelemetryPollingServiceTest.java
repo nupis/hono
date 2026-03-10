@@ -56,6 +56,7 @@ class TelemetryPollingServiceTest {
     private static final String TENANT_ID = "DEFAULT_TENANT";
     private static final String DEVICE_ID = "sensor-001";
     private static final String PROVIDER_DSP_URL = "https://provider.example.com/dsp";
+    private static final String PROVIDER_BPN = "BPNL00000003CRHK";
     private static final String OFFER_ID = "offer-123";
     private static final String NEGOTIATION_ID = "neg-001";
     private static final String AGREEMENT_ID = "agreement-001";
@@ -81,6 +82,7 @@ class TelemetryPollingServiceTest {
         deviceAssetMapper = mock(DeviceAssetMapper.class);
         properties = new EdcAdapterProperties();
         properties.setProviderDspUrl(PROVIDER_DSP_URL);
+        properties.setProviderBpn(PROVIDER_BPN);
         metrics = EdcAdapterMetrics.NOOP;
 
         pollingService = new TelemetryPollingService(
@@ -102,8 +104,8 @@ class TelemetryPollingServiceTest {
         pollingService.executeCycle()
                 .onComplete(ctx.succeeding(v -> {
                     ctx.verify(() -> {
-                        verify(managementClient).queryCatalog(PROVIDER_DSP_URL);
-                        verify(managementClient).initiateNegotiation(PROVIDER_DSP_URL, OFFER_ID, DEVICE_ID);
+                        verify(managementClient).queryCatalog(PROVIDER_DSP_URL, PROVIDER_BPN);
+                        verify(managementClient).initiateNegotiation(PROVIDER_DSP_URL, PROVIDER_BPN, OFFER_ID, DEVICE_ID);
                     });
                     ctx.completeNow();
                 }));
@@ -133,13 +135,13 @@ class TelemetryPollingServiceTest {
         final var asset1 = new CatalogAsset("failing-device", OFFER_ID, PROVIDER_DSP_URL);
         final var asset2 = new CatalogAsset(DEVICE_ID, "offer-2", PROVIDER_DSP_URL);
 
-        when(managementClient.queryCatalog(PROVIDER_DSP_URL))
+        when(managementClient.queryCatalog(PROVIDER_DSP_URL, PROVIDER_BPN))
                 .thenReturn(Future.succeededFuture(List.of(asset1, asset2)));
 
         // First device: mapper resolves but negotiation fails
         when(deviceAssetMapper.resolveDevice(eq(TENANT_ID), eq("failing-device"), any()))
                 .thenReturn(Future.succeededFuture(Optional.of(new DeviceMapping(TENANT_ID, "failing-device"))));
-        when(managementClient.initiateNegotiation(PROVIDER_DSP_URL, OFFER_ID, "failing-device"))
+        when(managementClient.initiateNegotiation(PROVIDER_DSP_URL, PROVIDER_BPN, OFFER_ID, "failing-device"))
                 .thenReturn(Future.failedFuture(new RuntimeException("negotiation failed")));
 
         // Second device: full success
@@ -153,7 +155,7 @@ class TelemetryPollingServiceTest {
                 .onComplete(ctx.succeeding(v -> {
                     ctx.verify(() -> {
                         // Should still process second device
-                        verify(managementClient).initiateNegotiation(PROVIDER_DSP_URL, "offer-2", DEVICE_ID);
+                        verify(managementClient).initiateNegotiation(PROVIDER_DSP_URL, PROVIDER_BPN, "offer-2", DEVICE_ID);
                         verify(telemetrySender).sendTelemetry(
                                 any(), any(), any(), eq(CONTENT_TYPE), any(), any(), any());
                     });
@@ -165,7 +167,7 @@ class TelemetryPollingServiceTest {
     void testSkipsAssetWithNoMatchingDevice(final Vertx vertx, final VertxTestContext ctx) {
         final var asset = new CatalogAsset("unknown-device", OFFER_ID, PROVIDER_DSP_URL);
 
-        when(managementClient.queryCatalog(PROVIDER_DSP_URL))
+        when(managementClient.queryCatalog(PROVIDER_DSP_URL, PROVIDER_BPN))
                 .thenReturn(Future.succeededFuture(List.of(asset)));
         when(deviceAssetMapper.resolveDevice(eq(TENANT_ID), eq("unknown-device"), any()))
                 .thenReturn(Future.succeededFuture(Optional.empty()));
@@ -175,7 +177,7 @@ class TelemetryPollingServiceTest {
         pollingService.executeCycle()
                 .onComplete(ctx.succeeding(v -> {
                     ctx.verify(() -> {
-                        verify(managementClient, never()).initiateNegotiation(any(), any(), any());
+                        verify(managementClient, never()).initiateNegotiation(any(), any(), any(), any());
                         verify(telemetrySender, never()).sendTelemetry(
                                 any(), any(), any(), any(), any(), any(), any());
                     });
@@ -185,13 +187,13 @@ class TelemetryPollingServiceTest {
 
     @Test
     void testHandlesEmptyCatalogGracefully(final Vertx vertx, final VertxTestContext ctx) {
-        when(managementClient.queryCatalog(PROVIDER_DSP_URL))
+        when(managementClient.queryCatalog(PROVIDER_DSP_URL, PROVIDER_BPN))
                 .thenReturn(Future.succeededFuture(List.of()));
 
         pollingService.executeCycle()
                 .onComplete(ctx.succeeding(v -> {
                     ctx.verify(() -> {
-                        verify(managementClient, never()).initiateNegotiation(any(), any(), any());
+                        verify(managementClient, never()).initiateNegotiation(any(), any(), any(), any());
                         verify(telemetrySender, never()).sendTelemetry(
                                 any(), any(), any(), any(), any(), any(), any());
                     });
@@ -209,7 +211,7 @@ class TelemetryPollingServiceTest {
         final var asset2 = new CatalogAsset("sensor-042", "offer-2", PROVIDER_DSP_URL);
         final var asset3 = new CatalogAsset("sensor-099", "offer-3", PROVIDER_DSP_URL);
 
-        when(managementClient.queryCatalog(PROVIDER_DSP_URL))
+        when(managementClient.queryCatalog(PROVIDER_DSP_URL, PROVIDER_BPN))
                 .thenReturn(Future.succeededFuture(List.of(asset1, asset2, asset3)));
         setupDeviceFlow(asset2);
         when(tenantClient.get(eq(TENANT_ID), any()))
@@ -220,12 +222,12 @@ class TelemetryPollingServiceTest {
                     ctx.verify(() -> {
                         // Only sensor-042 should be negotiated
                         verify(managementClient, times(1)).initiateNegotiation(
-                                PROVIDER_DSP_URL, "offer-2", "sensor-042");
+                                PROVIDER_DSP_URL, PROVIDER_BPN, "offer-2", "sensor-042");
                         // Others should NOT be negotiated
                         verify(managementClient, never()).initiateNegotiation(
-                                eq(PROVIDER_DSP_URL), eq("offer-1"), eq("sensor-001"));
+                                eq(PROVIDER_DSP_URL), eq(PROVIDER_BPN), eq("offer-1"), eq("sensor-001"));
                         verify(managementClient, never()).initiateNegotiation(
-                                eq(PROVIDER_DSP_URL), eq("offer-3"), eq("sensor-099"));
+                                eq(PROVIDER_DSP_URL), eq(PROVIDER_BPN), eq("offer-3"), eq("sensor-099"));
                     });
                     ctx.completeNow();
                 }));
@@ -238,14 +240,14 @@ class TelemetryPollingServiceTest {
         final var asset1 = new CatalogAsset("sensor-001", "offer-1", PROVIDER_DSP_URL);
         final var asset2 = new CatalogAsset("sensor-099", "offer-3", PROVIDER_DSP_URL);
 
-        when(managementClient.queryCatalog(PROVIDER_DSP_URL))
+        when(managementClient.queryCatalog(PROVIDER_DSP_URL, PROVIDER_BPN))
                 .thenReturn(Future.succeededFuture(List.of(asset1, asset2)));
 
         pollingService.executeCycle()
                 .onComplete(ctx.succeeding(v -> {
                     ctx.verify(() -> {
                         // No assets should be processed
-                        verify(managementClient, never()).initiateNegotiation(any(), any(), any());
+                        verify(managementClient, never()).initiateNegotiation(any(), any(), any(), any());
                     });
                     ctx.completeNow();
                 }));
@@ -262,7 +264,7 @@ class TelemetryPollingServiceTest {
                 .onComplete(ctx.succeeding(v -> {
                     ctx.verify(() -> {
                         // Catalog query should still be called
-                        verify(managementClient).queryCatalog(PROVIDER_DSP_URL);
+                        verify(managementClient).queryCatalog(PROVIDER_DSP_URL, PROVIDER_BPN);
                     });
                     ctx.completeNow();
                 }));
@@ -277,7 +279,7 @@ class TelemetryPollingServiceTest {
         final var asset1 = new CatalogAsset(DEVICE_ID, OFFER_ID, PROVIDER_DSP_URL);
         final var asset2 = new CatalogAsset("sensor-002", "offer-2", PROVIDER_DSP_URL);
 
-        when(managementClient.queryCatalog(PROVIDER_DSP_URL))
+        when(managementClient.queryCatalog(PROVIDER_DSP_URL, PROVIDER_BPN))
                 .thenReturn(Future.succeededFuture(List.of(asset1, asset2)));
         setupDeviceFlow(asset1);
         setupDeviceFlow(asset2);
@@ -287,8 +289,8 @@ class TelemetryPollingServiceTest {
         pollingService.executeCycle()
                 .onComplete(ctx.succeeding(v -> {
                     ctx.verify(() -> {
-                        verify(managementClient).initiateNegotiation(PROVIDER_DSP_URL, OFFER_ID, DEVICE_ID);
-                        verify(managementClient).initiateNegotiation(PROVIDER_DSP_URL, "offer-2", "sensor-002");
+                        verify(managementClient).initiateNegotiation(PROVIDER_DSP_URL, PROVIDER_BPN, OFFER_ID, DEVICE_ID);
+                        verify(managementClient).initiateNegotiation(PROVIDER_DSP_URL, PROVIDER_BPN, "offer-2", "sensor-002");
                     });
                     ctx.completeNow();
                 }));
@@ -301,7 +303,7 @@ class TelemetryPollingServiceTest {
         final var asset1 = new CatalogAsset(DEVICE_ID, OFFER_ID, PROVIDER_DSP_URL);
         final var asset2 = new CatalogAsset("sensor-002", "offer-2", PROVIDER_DSP_URL);
 
-        when(managementClient.queryCatalog(PROVIDER_DSP_URL))
+        when(managementClient.queryCatalog(PROVIDER_DSP_URL, PROVIDER_BPN))
                 .thenReturn(Future.succeededFuture(List.of(asset1, asset2)));
         setupDeviceFlow(asset1);
         setupDeviceFlow(asset2);
@@ -311,15 +313,15 @@ class TelemetryPollingServiceTest {
         pollingService.executeCycle()
                 .onComplete(ctx.succeeding(v -> {
                     ctx.verify(() -> {
-                        verify(managementClient).initiateNegotiation(PROVIDER_DSP_URL, OFFER_ID, DEVICE_ID);
-                        verify(managementClient).initiateNegotiation(PROVIDER_DSP_URL, "offer-2", "sensor-002");
+                        verify(managementClient).initiateNegotiation(PROVIDER_DSP_URL, PROVIDER_BPN, OFFER_ID, DEVICE_ID);
+                        verify(managementClient).initiateNegotiation(PROVIDER_DSP_URL, PROVIDER_BPN, "offer-2", "sensor-002");
                     });
                     ctx.completeNow();
                 }));
     }
 
     private void setupSuccessfulFlow(final CatalogAsset asset) {
-        when(managementClient.queryCatalog(PROVIDER_DSP_URL))
+        when(managementClient.queryCatalog(PROVIDER_DSP_URL, PROVIDER_BPN))
                 .thenReturn(Future.succeededFuture(List.of(asset)));
         setupDeviceFlow(asset);
         when(tenantClient.get(eq(TENANT_ID), any()))
@@ -329,11 +331,11 @@ class TelemetryPollingServiceTest {
     private void setupDeviceFlow(final CatalogAsset asset) {
         when(deviceAssetMapper.resolveDevice(eq(TENANT_ID), eq(asset.assetId()), any()))
                 .thenReturn(Future.succeededFuture(Optional.of(new DeviceMapping(TENANT_ID, asset.assetId()))));
-        when(managementClient.initiateNegotiation(PROVIDER_DSP_URL, asset.offerId(), asset.assetId()))
+        when(managementClient.initiateNegotiation(PROVIDER_DSP_URL, PROVIDER_BPN, asset.offerId(), asset.assetId()))
                 .thenReturn(Future.succeededFuture(NEGOTIATION_ID));
         when(managementClient.awaitNegotiationFinalized(NEGOTIATION_ID))
                 .thenReturn(Future.succeededFuture(AGREEMENT_ID));
-        when(managementClient.initiateTransfer(PROVIDER_DSP_URL, AGREEMENT_ID))
+        when(managementClient.initiateTransfer(PROVIDER_DSP_URL, PROVIDER_BPN, AGREEMENT_ID))
                 .thenReturn(Future.succeededFuture(TRANSFER_ID));
         when(managementClient.awaitTransferStarted(TRANSFER_ID))
                 .thenReturn(Future.succeededFuture());

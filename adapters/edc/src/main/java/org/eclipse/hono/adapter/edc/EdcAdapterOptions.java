@@ -127,4 +127,11 @@ public interface EdcAdapterOptions {
      * @return The asset ID to filter on, or empty if no filter is configured.
      */
     Optional<String> assetIdFilter();
+
+    /**
+     * Gets the Business Partner Number (BPN) of the EDC Provider.
+     *
+     * @return The provider BPN, or empty if not configured.
+     */
+    Optional<String> providerBpn();
 }

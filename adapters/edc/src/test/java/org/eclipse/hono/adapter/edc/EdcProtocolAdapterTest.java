@@ -73,6 +73,35 @@ class EdcProtocolAdapterTest extends ProtocolAdapterTestSupport<EdcAdapterProper
     }
 
     @Test
+    void doStartFailsWhenProviderBpnNotConfigured() {
+        properties.setManagementApiUrl("https://edc-consumer:8181");
+        properties.setManagementApiKey("test-key");
+
+        final Promise<Void> startPromise = Promise.promise();
+        adapter.doStart(startPromise);
+
+        assertEquals(true, startPromise.future().failed());
+    }
+
+    @Test
+    void doStartSucceedsWhenAllRequiredPropertiesConfigured() {
+        properties.setManagementApiUrl("https://edc-consumer:8181");
+        properties.setManagementApiKey("test-key");
+        properties.setProviderDspUrl("https://edc-provider:8282/api/dsp");
+        properties.setProviderBpn("BPNL00000003CRHK");
+
+        // Mock setPeriodic for the 2-arg variant too
+        when(vertx.setPeriodic(anyLong(), org.mockito.ArgumentMatchers.<Handler<Long>>any()))
+                .thenReturn(42L);
+
+        adapter.init(vertx, null);
+        final Promise<Void> startPromise = Promise.promise();
+        adapter.doStart(startPromise);
+
+        assertEquals(true, startPromise.future().succeeded());
+    }
+
+    @Test
     void doStopCompletesSuccessfully() {
         final Promise<Void> stopPromise = Promise.promise();
 
