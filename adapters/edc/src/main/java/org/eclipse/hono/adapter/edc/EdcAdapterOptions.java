@@ -120,4 +120,11 @@ public interface EdcAdapterOptions {
      */
     @WithDefault("PT1S")
     Duration retryBackoffBase();
+
+    /**
+     * Gets the optional asset ID filter for restricting polling to a single asset.
+     *
+     * @return The asset ID to filter on, or empty if no filter is configured.
+     */
+    Optional<String> assetIdFilter();
 }

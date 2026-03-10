@@ -43,6 +43,7 @@ public class EdcAdapterProperties extends ProtocolAdapterProperties {
     private Duration transferTimeout = DEFAULT_TRANSFER_TIMEOUT;
     private int maxRetries = DEFAULT_MAX_RETRIES;
     private Duration retryBackoffBase = DEFAULT_RETRY_BACKOFF_BASE;
+    private String assetIdFilter;
 
     /**
      * Creates properties using default values.
@@ -69,6 +70,7 @@ public class EdcAdapterProperties extends ProtocolAdapterProperties {
         this.transferTimeout = options.transferTimeout();
         this.maxRetries = options.maxRetries();
         this.retryBackoffBase = options.retryBackoffBase();
+        options.assetIdFilter().ifPresent(this::setAssetIdFilter);
     }
 
     /**
@@ -296,5 +298,31 @@ public class EdcAdapterProperties extends ProtocolAdapterProperties {
      */
     public void setRetryBackoffBase(final Duration retryBackoffBase) {
         this.retryBackoffBase = Objects.requireNonNull(retryBackoffBase);
+    }
+
+    /**
+     * Gets the optional asset ID filter for restricting polling to a single asset.
+     *
+     * @return The asset ID to filter on, or {@code null} if no filter is configured.
+     */
+    public String getAssetIdFilter() {
+        return assetIdFilter;
+    }
+
+    /**
+     * Sets the optional asset ID filter for restricting polling to a single asset.
+     * <p>
+     * When set to a non-blank value, only the asset with the matching ID will be processed
+     * during polling cycles. When {@code null} or blank, all assets are processed.
+     *
+     * @param assetIdFilter The asset ID to filter on, or {@code null} to process all assets.
+     */
+    public void setAssetIdFilter(final String assetIdFilter) {
+        if (assetIdFilter != null) {
+            final String trimmed = assetIdFilter.trim();
+            this.assetIdFilter = trimmed.isEmpty() ? null : trimmed;
+        } else {
+            this.assetIdFilter = null;
+        }
     }
 }

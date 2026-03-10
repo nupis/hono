@@ -1,6 +1,8 @@
 hono:
   edc:
     pollingInterval: 60s
+    # Optional: restrict polling to a single asset by ID (omit to process all assets)
+    # assetIdFilter: ${HONO_EDC_ASSET_ID_FILTER:}
     managementApi:
       url: ${HONO_EDC_MANAGEMENT_API_URL}
       apiKey: ${HONO_EDC_MANAGEMENT_API_KEY}

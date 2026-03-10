@@ -152,6 +152,11 @@ public final class EdcProtocolAdapter extends AbstractProtocolAdapterBase<EdcAda
                 config,
                 metrics != null ? metrics : EdcAdapterMetrics.NOOP);
 
+        if (config.getAssetIdFilter() != null) {
+            log.info("Asset filter configured: assetId={}", config.getAssetIdFilter());
+        } else {
+            log.info("No asset filter configured, processing all catalog assets");
+        }
         pollingService.start();
         log.info("EDC protocol adapter started [pollingInterval={}]", config.getPollingInterval());
         startPromise.complete();

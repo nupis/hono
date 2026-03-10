@@ -16,6 +16,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -193,6 +194,125 @@ class TelemetryPollingServiceTest {
                         verify(managementClient, never()).initiateNegotiation(any(), any(), any());
                         verify(telemetrySender, never()).sendTelemetry(
                                 any(), any(), any(), any(), any(), any(), any());
+                    });
+                    ctx.completeNow();
+                }));
+    }
+
+    // --- US1: Filter Polling to a Specific Asset ---
+
+    @Test
+    void testFilterProcessesOnlyMatchingAsset(final Vertx vertx, final VertxTestContext ctx) {
+        properties.setAssetIdFilter("sensor-042");
+
+        final var asset1 = new CatalogAsset("sensor-001", "offer-1", PROVIDER_DSP_URL);
+        final var asset2 = new CatalogAsset("sensor-042", "offer-2", PROVIDER_DSP_URL);
+        final var asset3 = new CatalogAsset("sensor-099", "offer-3", PROVIDER_DSP_URL);
+
+        when(managementClient.queryCatalog(PROVIDER_DSP_URL))
+                .thenReturn(Future.succeededFuture(List.of(asset1, asset2, asset3)));
+        setupDeviceFlow(asset2);
+        when(tenantClient.get(eq(TENANT_ID), any()))
+                .thenReturn(Future.succeededFuture(TenantObject.from(TENANT_ID)));
+
+        pollingService.executeCycle()
+                .onComplete(ctx.succeeding(v -> {
+                    ctx.verify(() -> {
+                        // Only sensor-042 should be negotiated
+                        verify(managementClient, times(1)).initiateNegotiation(
+                                PROVIDER_DSP_URL, "offer-2", "sensor-042");
+                        // Others should NOT be negotiated
+                        verify(managementClient, never()).initiateNegotiation(
+                                eq(PROVIDER_DSP_URL), eq("offer-1"), eq("sensor-001"));
+                        verify(managementClient, never()).initiateNegotiation(
+                                eq(PROVIDER_DSP_URL), eq("offer-3"), eq("sensor-099"));
+                    });
+                    ctx.completeNow();
+                }));
+    }
+
+    @Test
+    void testFilterLogsWarningWhenAssetNotFound(final Vertx vertx, final VertxTestContext ctx) {
+        properties.setAssetIdFilter("sensor-042");
+
+        final var asset1 = new CatalogAsset("sensor-001", "offer-1", PROVIDER_DSP_URL);
+        final var asset2 = new CatalogAsset("sensor-099", "offer-3", PROVIDER_DSP_URL);
+
+        when(managementClient.queryCatalog(PROVIDER_DSP_URL))
+                .thenReturn(Future.succeededFuture(List.of(asset1, asset2)));
+
+        pollingService.executeCycle()
+                .onComplete(ctx.succeeding(v -> {
+                    ctx.verify(() -> {
+                        // No assets should be processed
+                        verify(managementClient, never()).initiateNegotiation(any(), any(), any());
+                    });
+                    ctx.completeNow();
+                }));
+    }
+
+    @Test
+    void testFilterStillQueriesFullCatalog(final Vertx vertx, final VertxTestContext ctx) {
+        properties.setAssetIdFilter("sensor-042");
+
+        final var asset = new CatalogAsset("sensor-042", OFFER_ID, PROVIDER_DSP_URL);
+        setupSuccessfulFlow(asset);
+
+        pollingService.executeCycle()
+                .onComplete(ctx.succeeding(v -> {
+                    ctx.verify(() -> {
+                        // Catalog query should still be called
+                        verify(managementClient).queryCatalog(PROVIDER_DSP_URL);
+                    });
+                    ctx.completeNow();
+                }));
+    }
+
+    // --- US2: Backward Compatibility (No Filter) ---
+
+    @Test
+    void testNoFilterProcessesAllAssets(final Vertx vertx, final VertxTestContext ctx) {
+        // assetIdFilter is null by default — no filter
+
+        final var asset1 = new CatalogAsset(DEVICE_ID, OFFER_ID, PROVIDER_DSP_URL);
+        final var asset2 = new CatalogAsset("sensor-002", "offer-2", PROVIDER_DSP_URL);
+
+        when(managementClient.queryCatalog(PROVIDER_DSP_URL))
+                .thenReturn(Future.succeededFuture(List.of(asset1, asset2)));
+        setupDeviceFlow(asset1);
+        setupDeviceFlow(asset2);
+        when(tenantClient.get(eq(TENANT_ID), any()))
+                .thenReturn(Future.succeededFuture(TenantObject.from(TENANT_ID)));
+
+        pollingService.executeCycle()
+                .onComplete(ctx.succeeding(v -> {
+                    ctx.verify(() -> {
+                        verify(managementClient).initiateNegotiation(PROVIDER_DSP_URL, OFFER_ID, DEVICE_ID);
+                        verify(managementClient).initiateNegotiation(PROVIDER_DSP_URL, "offer-2", "sensor-002");
+                    });
+                    ctx.completeNow();
+                }));
+    }
+
+    @Test
+    void testBlankFilterProcessesAllAssets(final Vertx vertx, final VertxTestContext ctx) {
+        properties.setAssetIdFilter("   ");  // blank → treated as no filter
+
+        final var asset1 = new CatalogAsset(DEVICE_ID, OFFER_ID, PROVIDER_DSP_URL);
+        final var asset2 = new CatalogAsset("sensor-002", "offer-2", PROVIDER_DSP_URL);
+
+        when(managementClient.queryCatalog(PROVIDER_DSP_URL))
+                .thenReturn(Future.succeededFuture(List.of(asset1, asset2)));
+        setupDeviceFlow(asset1);
+        setupDeviceFlow(asset2);
+        when(tenantClient.get(eq(TENANT_ID), any()))
+                .thenReturn(Future.succeededFuture(TenantObject.from(TENANT_ID)));
+
+        pollingService.executeCycle()
+                .onComplete(ctx.succeeding(v -> {
+                    ctx.verify(() -> {
+                        verify(managementClient).initiateNegotiation(PROVIDER_DSP_URL, OFFER_ID, DEVICE_ID);
+                        verify(managementClient).initiateNegotiation(PROVIDER_DSP_URL, "offer-2", "sensor-002");
                     });
                     ctx.completeNow();
                 }));

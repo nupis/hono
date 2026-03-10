@@ -14,6 +14,7 @@ package org.eclipse.hono.adapter.edc.polling;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -124,14 +125,18 @@ public class TelemetryPollingService {
         }
 
         final String cycleCorrelationId = UUID.randomUUID().toString();
-        LOG.info("starting polling cycle [correlationId={}]", cycleCorrelationId);
+        final String assetIdFilter = properties.getAssetIdFilter();
+        final String filterInfo = assetIdFilter != null ? assetIdFilter : "all";
+        LOG.info("starting polling cycle [correlationId={}, assetFilter={}]",
+                cycleCorrelationId, filterInfo);
         final Instant cycleStart = Instant.now();
 
         return managementClient.queryCatalog(properties.getProviderDspUrl())
                 .compose(assets -> {
-                    LOG.info("discovered {} assets in catalog [correlationId={}]",
-                            assets.size(), cycleCorrelationId);
-                    return processAssetsSequentially(assets, cycleCorrelationId);
+                    final var filtered = filterAssets(assets, assetIdFilter, cycleCorrelationId);
+                    LOG.info("discovered {} assets in catalog, processing {} after filtering [correlationId={}]",
+                            assets.size(), filtered.size(), cycleCorrelationId);
+                    return processAssetsSequentially(filtered, cycleCorrelationId);
                 })
                 .onSuccess(v -> {
                     final Duration elapsed = Duration.between(cycleStart, Instant.now());
@@ -145,6 +150,27 @@ public class TelemetryPollingService {
                     cycleInProgress.set(false);
                     return Future.succeededFuture();
                 });
+    }
+
+    private List<CatalogAsset> filterAssets(
+            final List<CatalogAsset> assets,
+            final String assetIdFilter,
+            final String cycleCorrelationId) {
+
+        if (assetIdFilter == null) {
+            return assets;
+        }
+
+        final var filtered = assets.stream()
+                .filter(asset -> asset.assetId().equals(assetIdFilter))
+                .toList();
+
+        if (filtered.isEmpty()) {
+            LOG.warn("filtered asset {} not found in catalog ({} assets discovered) [correlationId={}]",
+                    assetIdFilter, assets.size(), cycleCorrelationId);
+        }
+
+        return filtered;
     }
 
     private Future<Void> processAssetsSequentially(
