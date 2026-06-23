@@ -1,0 +1,27 @@
+hono:
+  edc:
+    pollingInterval: 60s
+    providerBpn: ${HONO_EDC_PROVIDER_BPN}
+    # Optional: restrict polling to a single asset by ID (omit to process all assets)
+    # assetIdFilter: ${HONO_EDC_ASSET_ID_FILTER:}
+    managementApi:
+      url: ${HONO_EDC_MANAGEMENT_API_URL}
+      apiKey: ${HONO_EDC_MANAGEMENT_API_KEY}
+    providerUrl: ${HONO_EDC_PROVIDER_URL}
+    dataPlane:
+      requestTimeout: 30s
+    negotiation:
+      pollInterval: 1s
+      timeout: 30s
+    transfer:
+      pollInterval: 1s
+      timeout: 30s
+    maxRetries: 3
+    retryBackoffBase: 1s
+
+quarkus:
+  rest-client:
+    edc-management-api:
+      verify-host: true
+      trust-store: ${HONO_EDC_TRUSTSTORE_PATH:}
+      trust-store-password: ${HONO_EDC_TRUSTSTORE_PASSWORD:}
